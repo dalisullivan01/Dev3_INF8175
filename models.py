@@ -177,6 +177,17 @@ class DigitClassificationModel(object):
     def __init__(self) -> None:
         # Initialize your model parameters here
         "*** TODO: COMPLETE HERE FOR QUESTION 3 ***"
+        self.hidden1 = 200
+        self.hidden2 = 100
+
+        self.W1 = nn.Parameter(784, self.hidden1)
+        self.b1 = nn.Parameter(1, self.hidden1)
+
+        self.W2 = nn.Parameter(self.hidden1, self.hidden2)
+        self.b2 = nn.Parameter(1, self.hidden2)
+
+        self.W3 = nn.Parameter(self.hidden2, 10)
+        self.b3 = nn.Parameter(1, 10)
 
     def run(self, x: nn.Constant) -> nn.Node:
         """
@@ -193,6 +204,21 @@ class DigitClassificationModel(object):
                 (also called logits)
         """
         "*** TODO: COMPLETE HERE FOR QUESTION 3 ***"
+        # Layer 1
+        h1 = nn.Linear(x, self.W1)
+        h1 = nn.AddBias(h1, self.b1)
+        h1 = nn.ReLU(h1)
+
+        # Layer 2
+        h2 = nn.Linear(h1, self.W2)
+        h2 = nn.AddBias(h2, self.b2)
+        h2 = nn.ReLU(h2)
+
+        # Output layer (logits)
+        out = nn.Linear(h2, self.W3)
+        out = nn.AddBias(out, self.b3)
+
+        return out
 
     def get_loss(self, x: nn.Constant, y: nn.Constant) -> nn.Node:
         """
@@ -208,9 +234,32 @@ class DigitClassificationModel(object):
         Returns: a loss node
         """
         "*** TODO: COMPLETE HERE FOR QUESTION 3 ***"
+        logits = self.run(x)
+        return nn.SoftmaxLoss(logits, y)
 
     def train(self, dataset: DigitClassificationDataset) -> None:
         """
         Trains the model.
         """
         "*** TODO: COMPLETE HERE FOR QUESTION 3 ***"
+        batch_size = 100
+        learning_rate = 0.1
+
+        while True:
+            for x, y in dataset.iterate_once(batch_size):
+                loss = self.get_loss(x, y)
+
+                gradients = nn.gradients(loss,
+                    [self.W1, self.b1, self.W2, self.b2, self.W3, self.b3])
+
+                self.W1.update(gradients[0], -learning_rate)
+                self.b1.update(gradients[1], -learning_rate)
+                self.W2.update(gradients[2], -learning_rate)
+                self.b2.update(gradients[3], -learning_rate)
+                self.W3.update(gradients[4], -learning_rate)
+                self.b3.update(gradients[5], -learning_rate)
+
+            # Check validation accuracy
+            if dataset.get_validation_accuracy() >= 0.97:
+                break
+
